@@ -1,0 +1,150 @@
+name: Windows EXE 构建
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "source_bundle.zip"
+      - ".github/workflows/build-windows.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: 构建硬盘健康卫士 Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: "x64"
+
+      - name: 解压项目源码
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:GITHUB_WORKSPACE "source_bundle.zip"
+          if (-not (Test-Path -LiteralPath $archive)) {
+            throw "仓库根目录缺少 source_bundle.zip。请上传完整的硬盘健康卫士 v0.3.1 源码包后重新运行。"
+          }
+          $extract = Join-Path $env:RUNNER_TEMP "hd-source"
+          if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $extract | Out-Null
+          Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force
+          $app = Get-ChildItem -LiteralPath $extract -Filter "disk_health_inspector.py" -File -Recurse | Select-Object -First 1
+          if (-not $app) { throw "源码包中没有 disk_health_inspector.py。" }
+          $src = $app.Directory.FullName
+          if (-not (Test-Path (Join-Path $src "test_core.py"))) { throw "源码包中没有 test_core.py。" }
+          "SRC_DIR=$src" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "源码目录：$src"
+
+      - name: 安装 PyInstaller
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+          python --version
+          python -m PyInstaller --version
+
+      - name: 获取并验证官方 smartmontools 7.5
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $url = "https://github.com/smartmontools/smartmontools/releases/download/RELEASE_7_5/smartmontools-7.5.win32-setup.exe"
+          $installer = Join-Path $env:RUNNER_TEMP "smartmontools-7.5.win32-setup.exe"
+          $expected = "896337FCC253220614CF8CDBD5CF2321C5AA326A37A04160A672A281E6104C70"
+          Invoke-WebRequest -Uri $url -OutFile $installer -MaximumRedirection 10
+          $actual = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToUpperInvariant()
+          if ($actual -ne $expected) {
+            Remove-Item -LiteralPath $installer -Force
+            throw "smartmontools SHA256 不匹配。期望：$expected；实际：$actual"
+          }
+          Write-Host "smartmontools SHA256 校验通过：$actual"
+
+      - name: 解包 SMART 组件（不安装到系统）
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          choco install 7zip.install --yes --no-progress
+          $sevenZip = (Get-Command "7z.exe" -ErrorAction SilentlyContinue).Source
+          if (-not $sevenZip) { $sevenZip = "C:\Program Files\7-Zip\7z.exe" }
+          if (-not (Test-Path $sevenZip)) { throw "没有找到 7-Zip 解包工具。" }
+          $installer = Join-Path $env:RUNNER_TEMP "smartmontools-7.5.win32-setup.exe"
+          $extract = Join-Path $env:RUNNER_TEMP "smartmontools-extracted"
+          if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $extract | Out-Null
+          & $sevenZip x $installer "-o$extract" -y
+          if ($LASTEXITCODE -ne 0) { throw "7-Zip 解包 smartmontools 安装包失败，退出代码：$LASTEXITCODE" }
+          $smartctl = Get-ChildItem -LiteralPath $extract -Filter "smartctl.exe" -File -Recurse | Select-Object -First 1
+          $driveDb = Get-ChildItem -LiteralPath $extract -Filter "drivedb.h" -File -Recurse | Select-Object -First 1
+          if (-not $smartctl) { throw "官方安装包解包后未找到 smartctl.exe。" }
+          if (-not $driveDb) { throw "官方安装包解包后未找到 drivedb.h。" }
+          $vendor = Join-Path $env:SRC_DIR "vendor\smartmontools"
+          $bin = Join-Path $vendor "bin"
+          $share = Join-Path $vendor "share\smartmontools"
+          New-Item -ItemType Directory -Force -Path $bin, $share | Out-Null
+          Copy-Item -Path (Join-Path $smartctl.Directory.FullName "*") -Destination $bin -Recurse -Force
+          Copy-Item -LiteralPath $driveDb.FullName -Destination (Join-Path $share "drivedb.h") -Force
+          if (-not (Test-Path (Join-Path $bin "smartctl.exe"))) { throw "smartctl.exe 复制失败。" }
+          Write-Host "SMART 组件已准备：$(Join-Path $bin 'smartctl.exe')"
+
+      - name: 语法检查和核心测试
+        shell: pwsh
+        run: |
+          Set-Location -LiteralPath $env:SRC_DIR
+          python -m py_compile .\disk_health_inspector.py
+          python -m unittest -v .\test_core.py
+
+      - name: 构建独立单文件 EXE
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location -LiteralPath $env:SRC_DIR
+          $vendorBin = Join-Path $env:SRC_DIR "vendor\smartmontools\bin"
+          $driveDb = Join-Path $env:SRC_DIR "vendor\smartmontools\share\smartmontools\drivedb.h"
+          $dist = Join-Path $env:GITHUB_WORKSPACE "dist"
+          $work = Join-Path $env:RUNNER_TEMP "pyinstaller-work"
+          $spec = Join-Path $env:RUNNER_TEMP "pyinstaller-spec"
+          if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+          $pyArgs = @(
+            "--noconfirm", "--clean", "--onefile", "--windowed", "--uac-admin",
+            "--name", "硬盘健康卫士",
+            "--distpath", $dist,
+            "--workpath", $work,
+            "--specpath", $spec,
+            "--add-data", "$vendorBin;smartmontools\bin",
+            "--add-data", "$driveDb;smartmontools\share\smartmontools"
+          )
+          & python -m PyInstaller @pyArgs (Join-Path $env:SRC_DIR "disk_health_inspector.py")
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller 构建失败，退出代码：$LASTEXITCODE" }
+          $exe = Join-Path $dist "硬盘健康卫士.exe"
+          if (-not (Test-Path $exe)) { throw "未生成目标 EXE。" }
+          $stream = [System.IO.File]::OpenRead($exe)
+          try {
+            if ($stream.ReadByte() -ne 0x4D -or $stream.ReadByte() -ne 0x5A) { throw "EXE 文件头无效。" }
+          } finally { $stream.Dispose() }
+          $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
+          "$hash  硬盘健康卫士.exe" | Set-Content -LiteralPath (Join-Path $dist "EXE_SHA256.txt") -Encoding ascii
+          if (Test-Path (Join-Path $env:SRC_DIR "THIRD_PARTY_NOTICES.txt")) {
+            Copy-Item (Join-Path $env:SRC_DIR "THIRD_PARTY_NOTICES.txt") $dist -Force
+          }
+          Write-Host "构建成功：$exe"
+          Write-Host "SHA256：$hash"
+
+      - name: 上传 EXE 构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: 硬盘健康卫士-Windows-x64
+          path: |
+            dist/硬盘健康卫士.exe
+            dist/EXE_SHA256.txt
+            dist/THIRD_PARTY_NOTICES.txt
+          if-no-files-found: error
+          retention-days: 30
