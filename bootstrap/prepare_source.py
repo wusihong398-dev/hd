@@ -38,7 +38,6 @@ EXTRACT.mkdir(parents=True)
 
 try:
     with tarfile.open(ARCHIVE, mode="r:xz") as bundle:
-        # The archive is committed in this repository; reject path traversal anyway.
         root_resolved = EXTRACT.resolve()
         for member in bundle.getmembers():
             target = (EXTRACT / member.name).resolve()
@@ -56,7 +55,6 @@ for required in ("test_core.py", "THIRD_PARTY_NOTICES.txt", "build_windows.ps1")
     if not (SRC_DIR / required).is_file():
         fail(f"源码包缺少必要文件：{required}")
 
-# sqlite3.Connection's context manager commits/rolls back but does not close.
 source = SRC_DIR / "disk_health_inspector.py"
 text = source.read_text(encoding="utf-8")
 if "from contextlib import contextmanager" not in text:
@@ -72,7 +70,7 @@ old = """    def _connect(self):
 """
 new = """    @contextmanager
     def _connect(self):
-        \\"\\"\\"提交或回滚事务，并始终关闭 SQLite 文件句柄。\\"\\"\\"
+        """提交或回滚事务，并始终关闭 SQLite 文件句柄。"""
         conn = sqlite3.connect(self.db_path, timeout=15)
         conn.row_factory = sqlite3.Row
         try:
