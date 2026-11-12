@@ -68,7 +68,7 @@ old = """    def _connect(self):
         conn.execute("PRAGMA foreign_keys=ON")
         return conn
 """
-new = """    @contextmanager
+new = '''    @contextmanager
     def _connect(self):
         """提交或回滚事务，并始终关闭 SQLite 文件句柄。"""
         conn = sqlite3.connect(self.db_path, timeout=15)
@@ -82,7 +82,7 @@ new = """    @contextmanager
             raise
         finally:
             conn.close()
-"""
+'''
 if old in text:
     text = text.replace(old, new, 1)
 elif "finally:\n            conn.close()" not in text:
