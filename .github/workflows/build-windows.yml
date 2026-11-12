@@ -15,7 +15,7 @@ jobs:
   build:
     name: 构建硬盘健康卫士 Windows x64
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 46
 
     steps:
       - name: 检出仓库
