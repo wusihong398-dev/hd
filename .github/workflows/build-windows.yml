@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "source_bundle.zip"
+      - "bootstrap/**"
       - ".github/workflows/build-windows.yml"
 
 permissions:
@@ -26,21 +27,63 @@ jobs:
           python-version: "3.11"
           architecture: "x64"
 
-      - name: 解压项目源码
+      - name: 重组并解压项目源码
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           $archive = Join-Path $env:GITHUB_WORKSPACE "source_bundle.zip"
+
+          # 仓库保存分片 Base64 源码包；在 Windows runner 上重组成 ZIP。
           if (-not (Test-Path -LiteralPath $archive)) {
-            throw "仓库根目录缺少 source_bundle.zip。请上传完整的硬盘健康卫士 v0.3.1 源码包后重新运行。"
+            $partDir = Join-Path $env:GITHUB_WORKSPACE "bootstrap"
+            $partNames = @(
+              "source_bundle.zip.b64.part-001",
+              "source_bundle.zip.b64.part-002",
+              "source_bundle.zip.b64.part-003",
+              "source_bundle.zip.b64.part-004",
+              "source_bundle.zip.b64.part-005"
+            )
+            $builder = New-Object System.Text.StringBuilder
+            foreach ($partName in $partNames) {
+              $partPath = Join-Path $partDir $partName
+              if (-not (Test-Path -LiteralPath $partPath)) {
+                throw "缺少源码分片：$partPath"
+              }
+              $partText = (Get-Content -LiteralPath $partPath -Raw -Encoding ascii).Trim()
+              if ($partText -notmatch '^[A-Za-z0-9+/]+={0,2}$') {
+                throw "源码分片包含非 Base64 字符：$partName"
+              }
+              [void]$builder.Append($partText)
+            }
+            $encoded = $builder.ToString()
+            if ($encoded.Length -ne 36280) {
+              throw "源码 Base64 长度异常：$($encoded.Length)，预期 36280。"
+            }
+            try {
+              $bytes = [Convert]::FromBase64String($encoded)
+            }
+            catch {
+              throw "源码 Base64 解码失败：$($_.Exception.Message)"
+            }
+            [System.IO.File]::WriteAllBytes($archive, $bytes)
+            $archiveHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+            $expectedArchiveHash = "e768adc6486a2a533c6109b6fa8a866bac31d4903f16cf565ccdfca413026e71"
+            if ($archiveHash -ne $expectedArchiveHash) {
+              Remove-Item -LiteralPath $archive -Force
+              throw "重组源码 ZIP 的 SHA256 不匹配。期望：$expectedArchiveHash；实际：$archiveHash"
+            }
+            Write-Host "源码 ZIP 重组及 SHA256 校验通过：$archiveHash"
           }
+
           $extract = Join-Path $env:RUNNER_TEMP "hd-source"
           if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
           New-Item -ItemType Directory -Force -Path $extract | Out-Null
           Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force
           $app = Get-ChildItem -LiteralPath $extract -Filter "disk_health_inspector.py" -File -Recurse | Select-Object -First 1
-          if (-not $app) { throw "源码包中没有 disk_health_inspector.py。" }
+          if (-not $app) { throw "源码 ZIP 中没有 disk_health_inspector.py。" }
           $src = $app.Directory.FullName
-          if (-not (Test-Path (Join-Path $src "test_core.py"))) { throw "源码包中没有 test_core.py。" }
+          if (-not (Test-Path (Join-Path $src "test_core.py"))) { throw "源码 ZIP 中没有 test_core.py。" }
+          if (-not (Test-Path (Join-Path $src "THIRD_PARTY_NOTICES.txt"))) { throw "源码 ZIP 中没有第三方组件声明。" }
           "SRC_DIR=$src" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "源码目录：$src"
 
@@ -71,9 +114,13 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          choco install 7zip.install --yes --no-progress
           $sevenZip = (Get-Command "7z.exe" -ErrorAction SilentlyContinue).Source
           if (-not $sevenZip) { $sevenZip = "C:\Program Files\7-Zip\7z.exe" }
+          if (-not (Test-Path $sevenZip)) {
+            choco install 7zip.install --yes --no-progress
+            $sevenZip = (Get-Command "7z.exe" -ErrorAction SilentlyContinue).Source
+            if (-not $sevenZip) { $sevenZip = "C:\Program Files\7-Zip\7z.exe" }
+          }
           if (-not (Test-Path $sevenZip)) { throw "没有找到 7-Zip 解包工具。" }
           $installer = Join-Path $env:RUNNER_TEMP "smartmontools-7.5.win32-setup.exe"
           $extract = Join-Path $env:RUNNER_TEMP "smartmontools-extracted"
@@ -99,7 +146,7 @@ jobs:
         run: |
           Set-Location -LiteralPath $env:SRC_DIR
           python -m py_compile .\disk_health_inspector.py
-          python -m unittest -v .\test_core.py
+          python -m unittest -v test_core
 
       - name: 构建独立单文件 EXE
         shell: pwsh
