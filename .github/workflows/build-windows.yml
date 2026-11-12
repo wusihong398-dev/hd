@@ -56,8 +56,8 @@ jobs:
               [void]$builder.Append($partText)
             }
             $encoded = $builder.ToString()
-            if ($encoded.Length -ne 36280) {
-              throw "源码 Base64 长度异常：$($encoded.Length)，预期 36280。"
+            if ($encoded.Length -ne 36716) {
+              throw "源码 Base64 长度异常：$($encoded.Length)，预期 36716。"
             }
             try {
               $bytes = [Convert]::FromBase64String($encoded)
@@ -67,7 +67,7 @@ jobs:
             }
             [System.IO.File]::WriteAllBytes($archive, $bytes)
             $archiveHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-            $expectedArchiveHash = "e768adc6486a2a533c6109b6fa8a866bac31d4903f16cf565ccdfca413026e71"
+            $expectedArchiveHash = "249856ff40b51ebd444762f08f964a0dcb3604ffc3ca15e442120a69fc69223b"
             if ($archiveHash -ne $expectedArchiveHash) {
               Remove-Item -LiteralPath $archive -Force
               throw "重组源码 ZIP 的 SHA256 不匹配。期望：$expectedArchiveHash；实际：$archiveHash"
