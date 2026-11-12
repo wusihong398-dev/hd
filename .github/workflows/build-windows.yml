@@ -33,7 +33,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $bootstrap = Join-Path $env:GITHUB_WORKSPACE "bootstrap"
           $chunks = New-Object System.Collections.Generic.List[string]
-          foreach ($i in 1..5) {
+          foreach ($i in 1..6) {
             $partName = "source-bundle.tar.xz.b64.part-{0:D3}" -f $i
             $partPath = Join-Path $bootstrap $partName
             if (-not (Test-Path -LiteralPath $partPath)) {
