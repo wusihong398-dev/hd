@@ -127,6 +127,47 @@ def summarize_health_overview(results: list[dict[str, Any]]) -> dict[str, Any]:
 '''
 diag_path.write_text(diag, encoding="utf-8-sig", newline="")
 
+test_path = root / "test_v050_dashboard.py"
+test_content = """import unittest
+
+from disk_health_diagnostics import summarize_health_overview
+
+
+class HealthOverviewSummaryTests(unittest.TestCase):
+    def test_summary_counts_risk_levels_and_only_averages_real_scores(self):
+        results = [
+            {"risk_level": "良好", "score": 96},
+            {"risk_level": "关注", "score": 82},
+            {"risk_level": "严重", "score": None},
+            {"risk_level": "无法读取", "error": "SMART unsupported", "score": None},
+            {"risk_level": "数据不足", "score": None},
+        ]
+        summary = summarize_health_overview(results)
+        self.assertEqual(summary["total"], 5)
+        self.assertEqual(summary["counts"]["良好"], 1)
+        self.assertEqual(summary["counts"]["关注"], 1)
+        self.assertEqual(summary["counts"]["严重"], 1)
+        self.assertEqual(summary["counts"]["无法读取"], 1)
+        self.assertEqual(summary["counts"]["数据不足"], 1)
+        self.assertEqual(summary["scored"], 2)
+        self.assertEqual(summary["average_score"], 89.0)
+
+    def test_failed_smart_read_is_not_counted_as_healthy(self):
+        summary = summarize_health_overview([{"health": "正常", "error": "access denied"}])
+        self.assertEqual(summary["counts"]["无法读取"], 1)
+        self.assertEqual(summary["counts"]["良好"], 0)
+
+    def test_zero_score_is_a_real_score(self):
+        summary = summarize_health_overview([{"risk_level": "严重", "score": 0}])
+        self.assertEqual(summary["scored"], 1)
+        self.assertEqual(summary["average_score"], 0.0)
+
+
+if __name__ == "__main__":
+    unittest.main()
+"""
+test_path.write_text(test_content, encoding="utf-8")
+
 # Compute diagnostics for every drive during the existing all-disk SMART worker.
 patch_once(
     '                    summary = smart_summary(data)\n                    history_result = None\n',
