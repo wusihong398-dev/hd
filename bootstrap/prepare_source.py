@@ -91,6 +91,10 @@ patch_script = BOOTSTRAP / "apply_v040_fixes.py"
 if not patch_script.is_file():
     fail("缺少 v0.4.0 修正补丁脚本。")
 subprocess.run([sys.executable, str(patch_script), str(SRC_DIR)], check=True)
+scan_patch_script = BOOTSTRAP / "apply_scan_visuals.py"
+if not scan_patch_script.is_file():
+    fail("缺少坏道扫描可视化补丁脚本。")
+subprocess.run([sys.executable, str(scan_patch_script), str(SRC_DIR)], check=True)
 
 with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8", newline="\n") as env_file:
     env_file.write(f"SRC_DIR={SRC_DIR}\n")
