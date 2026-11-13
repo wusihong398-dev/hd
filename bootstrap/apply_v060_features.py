@@ -377,7 +377,7 @@ store_methods = r'''    def ensure_alert_table(self):
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_health_alerts_seen ON health_alerts(last_seen_at)")
 
-    def record_alert_if_due(self, disk, level, message, now=None, cooldown_hours=ALERT_COOLDOWN_HOURS):
+    def record_alert_if_due(self, disk, level, message, now=None, cooldown_hours=6):
         identity_key, _quality = disk_identity(disk)
         stamp = (now or datetime.now()).isoformat(timespec="seconds")
         fingerprint = hashlib.sha256((str(level) + "\\0" + str(message)).encode("utf-8")).hexdigest()
