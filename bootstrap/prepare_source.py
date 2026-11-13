@@ -4,8 +4,14 @@ import base64
 import hashlib
 import os
 import shutil
+import sys
 import zipfile
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 ROOT = Path(os.environ["GITHUB_WORKSPACE"])
 BOOTSTRAP = ROOT / "bootstrap"
