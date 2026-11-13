@@ -3,12 +3,12 @@ name: Windows EXE 构建
 on:
   workflow_dispatch:
   push:
-    branches: [v0.4.0, v0.5.0]
+    branches: [v0.4.0, v0.5.0, v0.6.0]
     paths:
       - "bootstrap/v040-integrated-source.zip.b64.part-*"
       - "bootstrap/prepare_source.py"
       - "bootstrap/inspect_source.py"
-      - "bootstrap/apply_v050_features.py"
+      - "bootstrap/apply_v050_features.py"\n      - "bootstrap/apply_v060_features.py"
       - "bootstrap/apply_v040_fixes.py"
       - ".github/workflows/build-windows.yml"
 
@@ -42,7 +42,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           python -m pip install --upgrade pip
-          python -m pip install pyinstaller
+          python -m pip install pyinstaller reportlab
           python --version
           python -m PyInstaller --version
 
