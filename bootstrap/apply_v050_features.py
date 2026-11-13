@@ -168,6 +168,13 @@ if __name__ == "__main__":
 """
 test_path.write_text(test_content, encoding="utf-8")
 
+# Bind dashboard results to stable disk identity as well as the transient PhysicalDrive number.
+patch_once(
+    '                idx = int(disk.get("Index", 0))\n                try:\n',
+    '                idx = int(disk.get("Index", 0))\n                identity_key, identity_quality = disk_identity(disk)\n                try:\n',
+    "全部硬盘结果稳定身份"
+)
+
 # Compute diagnostics for every drive during the existing all-disk SMART worker.
 patch_once(
     '                    summary = smart_summary(data)\n                    history_result = None\n',
@@ -178,7 +185,7 @@ patch_once(
     "全部硬盘 SMART 诊断准备"
 )
 patch_once(
-    '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n',
+    '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n                        "identity_key": identity_key, "identity_quality": identity_quality,\n',
     '                    previous_metrics = ((history_result or {}).get("previous") or {}).get("metrics") or {}\n'
     '                    diagnostic = assess_health(parsed_smart, previous_metrics)\n'
     '                    wear_metrics = parsed_smart.get("metrics") or {}\n'
@@ -195,7 +202,7 @@ patch_once(
     "全部硬盘结果添加评分与介质类型"
 )
 patch_once(
-    '                        "size": disk.get("Size"), "health": "无法读取",\n                        "warnings": [], "error": str(e),\n',
+    '                        "size": disk.get("Size"), "health": "无法读取",\n                        "identity_key": identity_key, "identity_quality": identity_quality,\n                        "warnings": [], "error": str(e),\n',
     '                        "size": disk.get("Size"), "health": "无法读取",\n'
     '                        "risk_level": "无法读取", "score": None, "drive_type": "未知",\n'
     '                        "wear_remaining_percent": None, "warnings": [], "error": str(e),\n',
@@ -221,6 +228,7 @@ methods = r'''    def _overview_results(self):
         results = report.get("results", []) if isinstance(report, dict) else []
         by_index = {int(item.get("disk_index")): item for item in results
                     if item.get("disk_index") is not None}
+        by_identity = {item.get("identity_key"): item for item in results if item.get("identity_key")}
         if self.current_smart_index is not None and self.current_summary is not None:
             idx = int(self.current_smart_index)
             if idx not in by_index:
@@ -244,6 +252,7 @@ methods = r'''    def _overview_results(self):
                     "warnings": self.current_summary.get("warnings", []),
                     "error": None,
                 }
+        self._overview_results_by_identity = by_identity
         return by_index
 
     def _render_health_overview(self):
@@ -253,7 +262,10 @@ methods = r'''    def _overview_results(self):
         rows = []
         for disk in self.disks:
             idx = int(disk.get("Index", 0))
-            item = by_index.get(idx, {})
+            identity_key, _ = disk_identity(disk)
+            item = getattr(self, "_overview_results_by_identity", {}).get(identity_key) or by_index.get(idx, {})
+            if item.get("model") and disk.get("Model") and str(item.get("model")).strip() != str(disk.get("Model")).strip():
+                item = {}
             risk = item.get("risk_level") or ("无法读取" if item.get("error") else "待检测")
             score = item.get("score")
             score_text = f"{score}/100" if score is not None else "数据不足"
