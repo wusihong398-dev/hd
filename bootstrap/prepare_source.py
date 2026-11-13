@@ -4,6 +4,7 @@ import base64
 import hashlib
 import os
 import shutil
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
@@ -85,6 +86,11 @@ for line in manifest.read_text(encoding="utf-8-sig").splitlines():
     if actual.lower() != expected.lower():
         fail(f"源码 SHA256 校验失败：{relative}")
     checked += 1
+
+patch_script = BOOTSTRAP / "apply_v040_fixes.py"
+if not patch_script.is_file():
+    fail("缺少 v0.4.0 修正补丁脚本。")
+subprocess.run([sys.executable, str(patch_script), str(SRC_DIR)], check=True)
 
 with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8", newline="\n") as env_file:
     env_file.write(f"SRC_DIR={SRC_DIR}\n")
