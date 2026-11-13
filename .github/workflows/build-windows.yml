@@ -3,7 +3,7 @@ name: Windows EXE 构建
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [v0.4.0]
     paths:
       - "bootstrap/source-bundle.tar.xz.b64.part-*"
       - ".github/workflows/build-windows.yml"
@@ -91,7 +91,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           Set-Location -LiteralPath $env:SRC_DIR
-          python -m py_compile .\disk_health_inspector.py
+          python -m py_compile .\disk_health_inspector.py .\health_diagnostics.py
           if ($LASTEXITCODE -ne 0) { throw "Python 语法检查失败。" }
           python -m unittest discover -s . -p "test_core.py" -v
           if ($LASTEXITCODE -ne 0) { throw "核心自动化测试失败。" }
