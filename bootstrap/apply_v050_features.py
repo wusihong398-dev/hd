@@ -268,6 +268,8 @@ methods = r'''    def _overview_results(self):
                     "warnings": self.current_summary.get("warnings", []),
                     "error": None,
                 }
+                if selected_key:
+                    by_identity[selected_key] = by_index[idx]
         self._overview_results_by_identity = by_identity
         return by_index
 
