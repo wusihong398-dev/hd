@@ -196,6 +196,18 @@ patch_once(
     "成功结果绑定硬盘身份"
 )
 patch_once(
+    '                        "size": disk.get("Size"), "device": name,\n',
+    '                        "size": disk.get("Size"), "device": name,\n'
+    '                        "drive_type": drive_class.get("type", "未知"),\n'
+    '                        "drive_type_confidence": drive_class.get("confidence", "未知"),\n'
+    '                        "drive_type_reason": drive_class.get("reason", "未取得类型证据"),\n'
+    '                        "score": diagnostic.get("score"),\n'
+    '                        "risk_level": diagnostic.get("level", "数据不足"),\n'
+    '                        "diagnostic_summary": diagnostic.get("summary", ""),\n'
+    '                        "diagnostic_rules": diagnostic.get("rules", []),\n',
+    "全部硬盘评分与风险详情"
+)
+patch_once(
     '                        "hours": summary.get("hours"), "wear": summary.get("wear"),\n',
     '                        "hours": summary.get("hours"), "wear": summary.get("wear"),\n'
     '                        "wear_remaining_percent": (parsed_smart.get("metrics") or {}).get("wear_remaining_percent"),\n'
