@@ -8,7 +8,8 @@ on:
       - "bootstrap/v040-integrated-source.zip.b64.part-*"
       - "bootstrap/prepare_source.py"
       - "bootstrap/inspect_source.py"
-      - "bootstrap/apply_v050_features.py"\n      - "bootstrap/apply_v060_features.py"
+      - "bootstrap/apply_v050_features.py"
+      - "bootstrap/apply_v060_features.py"
       - "bootstrap/apply_v040_fixes.py"
       - ".github/workflows/build-windows.yml"
 
