@@ -847,15 +847,11 @@ patch_once(
 
 # Capture the scan size and progress for the click-to-range mapping.
 patch_once(
-    '        self.scan_grid_total_bytes = int(disk.get("Size") or 0)\n        self.scan_grid_scanned_bytes = 0\n',
-    '        self.scan_grid_total_bytes = int(disk.get("Size") or 0)\n        self.scan_grid_scanned_bytes = 0\n        self.last_report = None\n',
-    "启动新扫描时清除旧的异常位置缓存"
-)
-patch_once(
     '        idx = int(disk.get("Index", 0))\n        size = human_size(disk.get("Size"))\n',
     '        idx = int(disk.get("Index", 0))\n'
     '        self.scan_grid_total_bytes = int(disk.get("Size") or 0)\n'
     '        self.scan_grid_scanned_bytes = 0\n'
+    '        self.last_report = None\n'
     '        size = human_size(disk.get("Size"))\n',
     "扫描启动时记录容量"
 )
