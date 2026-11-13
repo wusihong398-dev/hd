@@ -235,7 +235,8 @@ methods = r'''    def _overview_results(self):
             for disk, item, values, tag in rows:
                 tree.insert("", "end", iid=str(disk.get("Index")), values=values, tags=(tag,))
         try:
-            summary = summarize_health_overview(list(by_index.values()))
+            overview_module = __import__("disk_health_diagnostics", fromlist=["summarize_health_overview"])
+            summary = overview_module.summarize_health_overview(list(by_index.values()))
             c = summary["counts"]
             avg = f"{summary['average_score']}/100" if summary["average_score"] is not None else "暂无可评分硬盘"
             self.overview_summary_var.set(
