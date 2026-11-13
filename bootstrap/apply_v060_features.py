@@ -512,12 +512,19 @@ patch_once(
     '        report_actions.pack(anchor="w", pady=(9, 0))\n'
     '        ttk.Button(report_actions, text="生成全部硬盘 HTML / JSON 报告",\n'
     '                   command=self.export_all_report).pack(side="left")\n'
-    '        ttk.Button(report_actions, text="导出中文 PDF 报告",\n'
-    '                   command=self.export_pdf_report).pack(side="left", padx=7)\n',
+    '        ttk.Button(report_actions, text="导出全部硬盘 PDF",\n'
+    '                   command=self.export_pdf_report).pack(side="left", padx=7)\n'
+    '        ttk.Button(report_actions, text="导出当前硬盘 PDF",\n'
+    '                   command=lambda: self.export_pdf_report(single_only=True)).pack(side="left", padx=7)\n',
     "报告中心增加 PDF 导出"
 )
 
 # Scan grid interaction and detail text.
+patch_once(
+    '        self.scan_grid = tk.Canvas(scan_tab, height=190, bg="#f7f9fc",\n',
+    '        self.scan_grid = tk.Canvas(scan_tab, height=235, bg="#f7f9fc",\n',
+    "热力图完整显示 800 个单元格"
+)
 patch_once(
     '        self.scan_grid.pack(fill="x", pady=(2, 8))\n',
     '        self.scan_grid.pack(fill="x", pady=(2, 4))\n'
@@ -747,7 +754,7 @@ methods = r'''    def _on_scan_grid_click(self, event):
                 messagebox.showinfo("自动检测完成", "本次未发现需要立即提醒的严重风险。未知或读取受限的硬盘仍需人工复核。")
         return notifications
 
-    def export_pdf_report(self):
+    def export_pdf_report(self, single_only=False):
         report = self.last_all_smart_report or {}
         results = report.get("results", []) if isinstance(report, dict) else []
         if not results:
@@ -761,7 +768,14 @@ methods = r'''    def _on_scan_grid_click(self, event):
         if not path:
             return
         disks_payload = []
-        for disk in self.disks:
+        target_disks = list(self.disks)
+        if single_only:
+            selected = self.selected_disk()
+            if not selected:
+                messagebox.showwarning("尚未选择硬盘", "请先选择要导出的物理硬盘。")
+                return
+            target_disks = [selected]
+        for disk in target_disks:
             identity_key, _ = disk_identity(disk)
             item = next((x for x in results if x.get("identity_key") == identity_key), {})
             try:
