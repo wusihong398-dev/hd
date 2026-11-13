@@ -187,15 +187,15 @@ patch_once(
     '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n                        "identity_key": identity_key, "identity_quality": identity_quality,\n',
     "成功结果绑定硬盘身份"
 )
-smart_metrics_anchor = '"wear_remaining_percent": wear_metrics.get("wear_remaining_percent"),'
-if '"smart_metrics": wear_metrics' not in source:
-    if smart_metrics_anchor not in source:
-        raise SystemExit("v0.5.0 SMART 指标报告字段定位失败")
-    source = source.replace(
-        smart_metrics_anchor,
-        smart_metrics_anchor + '\n                        "smart_metrics": wear_metrics,\n                        "smart_attributes": parsed_smart.get("attributes", []),\n                        "smart_passed": parsed_smart.get("smart_passed"),',
-        1,
-    )
+patch_once(
+    '                        "hours": summary.get("hours"), "wear": summary.get("wear"),\n',
+    '                        "hours": summary.get("hours"), "wear": summary.get("wear"),\n'
+    '                        "wear_remaining_percent": (parsed_smart.get("metrics") or {}).get("wear_remaining_percent"),\n'
+    '                        "smart_metrics": parsed_smart.get("metrics") or {},\n'
+    '                        "smart_attributes": parsed_smart.get("attributes", []),\n'
+    '                        "smart_passed": parsed_smart.get("smart_passed"),\n',
+    "完整 SMART 指标进入总报告"
+)
 
 patch_once(
     '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n                        "size": disk.get("Size"), "health": "无法读取",\n',
