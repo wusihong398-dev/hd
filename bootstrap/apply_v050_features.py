@@ -217,7 +217,7 @@ methods = r'''    def _overview_results(self):
             idx = int(self.current_smart_index)
             selected_disk = next((d for d in self.disks if int(d.get("Index", -1)) == idx), {})
             selected_key, _ = disk_identity(selected_disk) if selected_disk else (None, None)
-            if idx not in by_index or (selected_key and by_index[idx].get("identity_key") not in (None, selected_key)):
+            if idx not in by_index or idx == int(self.current_smart_index) or (selected_key and by_index[idx].get("identity_key") not in (None, selected_key)):
                 parsed = self.current_interpreted_smart or {}
                 diagnostic = self.current_diagnostic or {}
                 drive_class = self.current_drive_class or {}
