@@ -297,8 +297,12 @@ methods = r'''    def _overview_results(self):
             idx = int(selection[0])
         except (TypeError, ValueError):
             return
-        item = self._overview_results().get(idx, {})
+        by_index = self._overview_results()
         disk = next((d for d in self.disks if int(d.get("Index", -1)) == idx), {})
+        identity_key, _ = disk_identity(disk) if disk else (None, None)
+        item = getattr(self, "_overview_results_by_identity", {}).get(identity_key) or by_index.get(idx, {})
+        if item.get("model") and disk.get("Model") and str(item.get("model")).strip() != str(disk.get("Model")).strip():
+            item = {}
         lines = [
             f"PhysicalDrive{idx} | {disk.get('Model', '未知型号')} | {human_size(disk.get('Size'))}",
             f"介质类型：{item.get('drive_type', '待识别')}；健康状态：{item.get('health', '待检测')}",
