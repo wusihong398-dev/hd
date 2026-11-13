@@ -99,8 +99,9 @@ def auto_check_task_command():
     """优先使用无管理员清单的辅助 EXE，避免登录自动检测触发 UAC。"""
     if getattr(sys, "frozen", False):
         helper = os.path.join(app_dir(), AUTO_CHECK_HELPER_NAME)
-        executable = helper if os.path.isfile(helper) else sys.executable
-        return f'"{executable}" --auto-check'
+        if not os.path.isfile(helper):
+            raise FileNotFoundError("未找到无管理员权限的自动检测辅助程序，请使用完整交付 ZIP。")
+        return f'"{helper}" --auto-check'
     script = os.path.abspath(sys.argv[0])
     return f'"{sys.executable}" "{script}" --auto-check'
 
@@ -126,6 +127,8 @@ def set_auto_check_task(enabled):
         if enabled:
             args = build_auto_check_task_args(auto_check_task_command())
         else:
+            if not auto_check_task_exists():
+                return True, "登录自动检测已经关闭。"
             args = ["schtasks.exe", "/Delete", "/TN", AUTO_CHECK_TASK_NAME, "/F"]
         result = subprocess.run(
             args, capture_output=True, text=True, encoding="utf-8", errors="replace",
@@ -843,6 +846,11 @@ patch_once(
 )
 
 # Capture the scan size and progress for the click-to-range mapping.
+patch_once(
+    '        self.scan_grid_total_bytes = int(disk.get("Size") or 0)\n        self.scan_grid_scanned_bytes = 0\n',
+    '        self.scan_grid_total_bytes = int(disk.get("Size") or 0)\n        self.scan_grid_scanned_bytes = 0\n        self.last_report = None\n',
+    "启动新扫描时清除旧的异常位置缓存"
+)
 patch_once(
     '        idx = int(disk.get("Index", 0))\n        size = human_size(disk.get("Size"))\n',
     '        idx = int(disk.get("Index", 0))\n'
