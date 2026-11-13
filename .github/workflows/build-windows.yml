@@ -124,6 +124,23 @@ jobs:
           )
           & python -m PyInstaller @pyArgs (Join-Path $env:SRC_DIR "disk_health_inspector.py")
           if ($LASTEXITCODE -ne 0) { throw "PyInstaller 构建失败，退出代码：$LASTEXITCODE" }
+          $autoWork = Join-Path $env:RUNNER_TEMP "pyinstaller-work-auto"
+          $autoSpec = Join-Path $env:RUNNER_TEMP "pyinstaller-spec-auto"
+          $autoArgs = @(
+            "--noconfirm", "--clean", "--onefile", "--windowed",
+            "--name", "硬盘健康卫士自动检测",
+            "--distpath", $dist,
+            "--workpath", $autoWork,
+            "--specpath", $autoSpec,
+            "--add-data", "$vendorBin;smartmontools\bin",
+            "--add-data", "$driveDb;smartmontools\share\smartmontools"
+          )
+          & python -m PyInstaller @autoArgs (Join-Path $env:SRC_DIR "disk_health_inspector.py")
+          if ($LASTEXITCODE -ne 0) { throw "自动检测辅助程序构建失败，退出代码：$LASTEXITCODE" }
+          $autoExe = Join-Path $dist "硬盘健康卫士自动检测.exe"
+          if (-not (Test-Path -LiteralPath $autoExe)) { throw "未生成自动检测辅助 EXE。" }
+          $autoHash = (Get-FileHash -LiteralPath $autoExe -Algorithm SHA256).Hash
+          "$autoHash  硬盘健康卫士自动检测.exe" | Set-Content -LiteralPath (Join-Path $dist "AUTO_CHECK_EXE_SHA256.txt") -Encoding ascii
           $exe = Join-Path $dist "硬盘健康卫士.exe"
           if (-not (Test-Path -LiteralPath $exe)) { throw "未生成目标 EXE。" }
           $stream = [System.IO.File]::OpenRead($exe)
@@ -145,7 +162,9 @@ jobs:
           name: 硬盘健康卫士-Windows-x64
           path: |
             dist/硬盘健康卫士.exe
+            dist/硬盘健康卫士自动检测.exe
             dist/EXE_SHA256.txt
+            dist/AUTO_CHECK_EXE_SHA256.txt
             dist/THIRD_PARTY_NOTICES.txt
           if-no-files-found: error
           retention-days: 30
