@@ -185,28 +185,19 @@ patch_once(
     "全部硬盘 SMART 诊断准备"
 )
 patch_once(
-    '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n                        "identity_key": identity_key, "identity_quality": identity_quality,\n',
-    '                    previous_metrics = ((history_result or {}).get("previous") or {}).get("metrics") or {}\n'
-    '                    diagnostic = assess_health(parsed_smart, previous_metrics)\n'
-    '                    wear_metrics = parsed_smart.get("metrics") or {}\n'
-    '                    results.append({\n'
-    '                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n'
-    '                        "drive_type": drive_class.get("type", "未知"),\n'
-    '                        "drive_type_confidence": drive_class.get("confidence", "未知"),\n'
-    '                        "drive_type_reason": drive_class.get("reason", "未取得类型证据"),\n'
-    '                        "score": diagnostic.get("score"),\n'
-    '                        "risk_level": diagnostic.get("level", "数据不足"),\n'
-    '                        "diagnostic_summary": diagnostic.get("summary", ""),\n'
-    '                        "diagnostic_rules": diagnostic.get("rules", []),\n'
-    '                        "wear_remaining_percent": wear_metrics.get("wear_remaining_percent"),\n',
-    "全部硬盘结果添加评分与介质类型"
+    '                idx = int(disk.get("Index", 0))\n                try:\n',
+    '                idx = int(disk.get("Index", 0))\n                identity_key, identity_quality = disk_identity(disk)\n                try:\n',
+    "全部硬盘结果稳定身份"
 )
 patch_once(
-    '                        "size": disk.get("Size"), "health": "无法读取",\n                        "identity_key": identity_key, "identity_quality": identity_quality,\n                        "warnings": [], "error": str(e),\n',
-    '                        "size": disk.get("Size"), "health": "无法读取",\n'
-    '                        "risk_level": "无法读取", "score": None, "drive_type": "未知",\n'
-    '                        "wear_remaining_percent": None, "warnings": [], "error": str(e),\n',
-    "读取失败时总览保留未知状态"
+    '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n',
+    '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n                        "identity_key": identity_key, "identity_quality": identity_quality,\n',
+    "成功结果绑定硬盘身份"
+)
+patch_once(
+    '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n                        "size": disk.get("Size"), "health": "无法读取",\n',
+    '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n                        "size": disk.get("Size"), "health": "无法读取",\n                        "identity_key": identity_key, "identity_quality": identity_quality,\n',
+    "读取失败结果绑定硬盘身份"
 )
 
 # Keep the selected drive's most recent SMART result available to the dashboard.
