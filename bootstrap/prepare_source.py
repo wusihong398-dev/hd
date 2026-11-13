@@ -100,5 +100,5 @@ with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8", newline="\n") as env_
     env_file.write(f"SRC_DIR={SRC_DIR}\n")
 
 print(f"源码目录：{SRC_DIR}")
-print(f"源码 ZIP 大小：{len(archive_bytes)} bytes")
+print(f"源码 ZIP 大小：{len(archive_bytes)} bytes")\nprint("已应用坏道扫描网格与完整报告补丁。")
 print(f"源码 SHA256 清单校验通过：{checked} 项")
