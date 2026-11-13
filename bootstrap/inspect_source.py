@@ -4,27 +4,35 @@ from pathlib import Path
 import sys
 
 root = Path(sys.argv[1]).resolve()
-for filename in ("disk_health_inspector.py", "disk_health_diagnostics.py", "test_core.py", "test_diagnostics.py"):
+targets = {
+    "disk_health_inspector.py": {
+        "DiskHealthApp.__init__", "DiskHealthApp._build_ui",
+        "DiskHealthApp.refresh_disks", "DiskHealthApp._all_smart_worker",
+        "DiskHealthApp._render_diagnostics", "DiskHealthApp._render_smart",
+        "DiskHealthApp._metric", "DiskHealthApp.export_report",
+        "HealthHistoryStore._initialize", "HealthHistoryStore.record_snapshot",
+        "HealthHistoryStore.record_scan", "HealthHistoryStore.get_history",
+        "history_metrics_from_summary", "compare_health_snapshots",
+        "smart_summary", "smart_attribute_rows", "disk_identity",
+    },
+    "disk_health_diagnostics.py": {
+        "classify_drive", "interpret_smart", "assess_health",
+    },
+}
+for filename, wanted in targets.items():
     path = root / filename
-    if not path.exists():
-        print(f"[MISSING] {filename}")
-        continue
     source = path.read_text(encoding="utf-8-sig")
     tree = ast.parse(source)
-    print(f"\n===== {filename} ({len(source.splitlines())} lines) =====")
+    print(f"\n===== SOURCE DETAILS {filename} =====")
     for node in tree.body:
         if isinstance(node, ast.ClassDef):
-            print(f"CLASS {node.name} line={node.lineno}")
             for child in node.body:
                 if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    print(f"  METHOD {child.name} line={child.lineno}")
+                    key = f"{node.name}.{child.name}"
+                    if key in wanted:
+                        print(f"\n--- {key} lines {child.lineno}-{child.end_lineno} ---")
+                        print(ast.get_source_segment(source, child))
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            print(f"FUNCTION {node.name} line={node.lineno}")
-        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
-            names = []
-            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            for target in targets:
-                if isinstance(target, ast.Name):
-                    names.append(target.id)
-            if names:
-                print(f"GLOBAL {','.join(names)} line={node.lineno}")
+            if node.name in wanted:
+                print(f"\n--- {node.name} lines {node.lineno}-{node.end_lineno} ---")
+                print(ast.get_source_segment(source, node))
