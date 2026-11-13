@@ -183,6 +183,14 @@ patch_once(
     "全部硬盘结果稳定身份"
 )
 patch_once(
+    '                    except Exception as history_exc:\n                        history_error = str(history_exc)\n                    results.append({\n',
+    '                    except Exception as history_exc:\n                        history_error = str(history_exc)\n'
+    '                    previous_metrics = ((history_result or {}).get("previous") or {}).get("metrics") or {}\n'
+    '                    diagnostic = assess_health(parsed_smart, previous_metrics)\n'
+    '                    results.append({\n',
+    "全部硬盘逐盘健康评分"
+)
+patch_once(
     '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n',
     '                    results.append({\n                        "disk_index": idx, "model": disk.get("Model", "未知型号"),\n                        "identity_key": identity_key, "identity_quality": identity_quality,\n',
     "成功结果绑定硬盘身份"
