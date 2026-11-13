@@ -231,13 +231,15 @@ methods = r'''    def _overview_results(self):
         by_identity = {item.get("identity_key"): item for item in results if item.get("identity_key")}
         if self.current_smart_index is not None and self.current_summary is not None:
             idx = int(self.current_smart_index)
-            if idx not in by_index:
+            selected_disk = next((d for d in self.disks if int(d.get("Index", -1)) == idx), {})
+            selected_key, _ = disk_identity(selected_disk) if selected_disk else (None, None)
+            if idx not in by_index or (selected_key and by_index[idx].get("identity_key") not in (None, selected_key)):
                 parsed = self.current_interpreted_smart or {}
                 diagnostic = self.current_diagnostic or {}
                 drive_class = self.current_drive_class or {}
                 metrics = parsed.get("metrics") or {}
                 by_index[idx] = {
-                    "disk_index": idx,
+                    "disk_index": idx, "identity_key": selected_key,
                     "model": next((d.get("Model") for d in self.disks if int(d.get("Index", -1)) == idx), "未知型号"),
                     "health": self.current_summary.get("health", "未知"),
                     "temperature": self.current_summary.get("temperature"),
@@ -377,7 +379,8 @@ methods = r'''    def _overview_results(self):
         disks_payload = []
         for disk in self.disks:
             idx = int(disk.get("Index", 0))
-            item = next((x for x in results if int(x.get("disk_index", -1)) == idx), {})
+            identity_key, _ = disk_identity(disk)
+            item = next((x for x in results if x.get("identity_key") == identity_key), {})
             try:
                 history = self.history_store.get_history(disk, limit=20)
                 self_tests = self.history_store.get_self_test_history(disk, limit=50)
