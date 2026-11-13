@@ -362,14 +362,15 @@ methods = r'''    def _overview_results(self):
             else:
                 escaped = body.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 cards = []
+                esc = lambda value: str(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 for item in disks_payload:
                     d = item["smart_diagnosis"]
                     score = f"{d.get('score')}/100" if d.get("score") is not None else "数据不足"
                     cards.append(
-                        f"<section><h2>PhysicalDrive{item['disk_index']} · {item.get('model') or '未知型号'}</h2>"
-                        f"<p>容量：{item['capacity']}　介质：{d.get('drive_type', '未知')}　"
-                        f"风险：{d.get('risk_level', d.get('health', '未知'))}　评分：{score}</p>"
-                        f"<p>{d.get('diagnostic_summary', d.get('error', '尚无诊断结论'))}</p></section>")
+                        f"<section><h2>PhysicalDrive{item['disk_index']} · {esc(item.get('model') or '未知型号')}</h2>"
+                        f"<p>容量：{esc(item['capacity'])}　介质：{esc(d.get('drive_type', '未知'))}　"
+                        f"风险：{esc(d.get('risk_level', d.get('health', '未知')))}　评分：{score}</p>"
+                        f"<p>{esc(d.get('diagnostic_summary', d.get('error', '尚无诊断结论')))}</p></section>")
                 html_doc = (
                     "<!doctype html><html lang='zh-CN'><head><meta charset='utf-8'>"
                     "<title>硬盘健康卫士 - 全部硬盘诊断报告</title>"
