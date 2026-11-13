@@ -99,10 +99,6 @@ v050_script = BOOTSTRAP / "apply_v050_features.py"
 if not v050_script.is_file():
     fail("缺少 v0.5.0 健康总览与报告中心补丁脚本。")
 subprocess.run([sys.executable, str(v050_script), str(SRC_DIR)], check=True)
-v050_script = BOOTSTRAP / "apply_v050_features.py"
-if not v050_script.is_file():
-    fail("缺少 v0.5.0 健康总览与报告中心补丁脚本。")
-subprocess.run([sys.executable, str(v050_script), str(SRC_DIR)], check=True)
 inspect_script = BOOTSTRAP / "inspect_source.py"
 if not inspect_script.is_file():
     fail("缺少源码结构审计脚本。")
