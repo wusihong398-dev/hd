@@ -13,7 +13,7 @@ targets = {
     "disk_health_inspector.py": {
         "DiskHealthApp.__init__", "DiskHealthApp._build_ui",
         "DiskHealthApp.refresh_disks", "DiskHealthApp._all_smart_worker",
-        "DiskHealthApp._render_diagnostics", "DiskHealthApp._render_smart",
+        "DiskHealthApp._render_diagnostics", "DiskHealthApp._render_smart", "DiskHealthApp._poll_events",\n        "DiskHealthApp.start_all_smart_check", "DiskHealthApp._load_disks_worker",\n        "DiskHealthApp.on_disk_selected", "DiskHealthApp.refresh_history_view",
         "DiskHealthApp._metric", "DiskHealthApp.export_report",
         "HealthHistoryStore._initialize", "HealthHistoryStore.record_snapshot",
         "HealthHistoryStore.record_scan", "HealthHistoryStore.get_history",
