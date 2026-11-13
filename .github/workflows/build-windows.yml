@@ -5,7 +5,7 @@ on:
   push:
     branches: [v0.4.0]
     paths:
-      - "bootstrap/source-bundle.tar.xz.b64.part-*"
+      - "bootstrap/v040-integrated-source.zip.b64.part-*"
       - ".github/workflows/build-windows.yml"
 
 permissions:
@@ -91,9 +91,9 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           Set-Location -LiteralPath $env:SRC_DIR
-          python -m py_compile .\disk_health_inspector.py .\health_diagnostics.py
+          python -m py_compile .\disk_health_inspector.py .\disk_health_diagnostics.py
           if ($LASTEXITCODE -ne 0) { throw "Python 语法检查失败。" }
-          python -m unittest discover -s . -p "test_core.py" -v
+          python -m unittest discover -s . -p "test_*.py" -v
           if ($LASTEXITCODE -ne 0) { throw "核心自动化测试失败。" }
 
       - name: 构建独立单文件 EXE
