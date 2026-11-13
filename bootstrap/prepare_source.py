@@ -95,6 +95,10 @@ scan_patch_script = BOOTSTRAP / "apply_scan_visuals.py"
 if not scan_patch_script.is_file():
     fail("缺少坏道扫描可视化补丁脚本。")
 subprocess.run([sys.executable, str(scan_patch_script), str(SRC_DIR)], check=True)
+inspect_script = BOOTSTRAP / "inspect_source.py"
+if not inspect_script.is_file():
+    fail("缺少源码结构审计脚本。")
+subprocess.run([sys.executable, str(inspect_script), str(SRC_DIR)], check=True)
 
 with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8", newline="\n") as env_file:
     env_file.write(f"SRC_DIR={SRC_DIR}\n")
