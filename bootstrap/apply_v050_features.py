@@ -168,13 +168,6 @@ if __name__ == "__main__":
 """
 test_path.write_text(test_content, encoding="utf-8")
 
-# Bind dashboard results to stable disk identity as well as the transient PhysicalDrive number.
-patch_once(
-    '                idx = int(disk.get("Index", 0))\n                try:\n',
-    '                idx = int(disk.get("Index", 0))\n                identity_key, identity_quality = disk_identity(disk)\n                try:\n',
-    "全部硬盘结果稳定身份"
-)
-
 # Compute diagnostics for every drive during the existing all-disk SMART worker.
 patch_once(
     '                    summary = smart_summary(data)\n                    history_result = None\n',
