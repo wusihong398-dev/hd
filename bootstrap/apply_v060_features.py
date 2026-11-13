@@ -813,16 +813,8 @@ patch_once(
     "自动检测调用参数"
 )
 patch_once(
-    '        if not messagebox.askyesno(\n'
-    '            "全部硬盘 SMART 检测",\n'
-    '            f"将依次读取电脑中 {len(self.disks)} 块物理硬盘的 SMART 数据。\\n\\n这不是全盘坏道扫描，不会逐扇区读取，也不会写入磁盘。是否继续？"\n'
-    '        ):\n'
-    '            return\n',
-    '        if not auto_confirm and not messagebox.askyesno(\n'
-    '            "全部硬盘 SMART 检测",\n'
-    '            f"将依次读取电脑中 {len(self.disks)} 块物理硬盘的 SMART 数据。\\n\\n这不是全盘坏道扫描，不会逐扇区读取，也不会写入磁盘。是否继续？"\n'
-    '        ):\n'
-    '            return\n',
+    '        if not messagebox.askyesno(\n            "全部硬盘 SMART 检测",',
+    '        if not auto_confirm and not messagebox.askyesno(\n            "全部硬盘 SMART 检测",',
     "自动检测只跳过手动确认，不改变检测方式"
 )
 
@@ -866,15 +858,17 @@ patch_once(
 
 # Notify on explicit evidence, but avoid the generic completion modal during a login-triggered run.
 patch_once(
-    '                    self.status_var.set("全部硬盘 SMART 检测完成")\n'
-    '                    messagebox.showinfo("检测完成", "\\\\n".join(lines)[:5000])\n',
+    '                    self.status_var.set("全部硬盘 SMART 检测完成")\n',
     '                    self.status_var.set("全部硬盘 SMART 检测完成")\n'
     '                    was_auto_check = self.auto_check_mode\n'
     '                    self._notify_health_alerts(payload, auto_mode=was_auto_check)\n'
-    '                    self.auto_check_mode = False\n'
-    '                    if not was_auto_check:\n'
-    '                        messagebox.showinfo("检测完成", "\\\\n".join(lines)[:5000])\n',
-    "自动检测完成后通知且避免重复完成弹窗"
+    '                    self.auto_check_mode = False\n',
+    "自动检测完成后生成去重提醒"
+)
+patch_once(
+    '                    messagebox.showinfo("检测完成",',
+    '                    if not was_auto_check:\n                        messagebox.showinfo("检测完成",',
+    "自动检测时隐藏通用完成弹窗"
 )
 
 # Switch main entrypoint to accept the scheduler's explicit flag.
