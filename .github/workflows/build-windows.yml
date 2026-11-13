@@ -7,6 +7,7 @@ on:
     paths:
       - "bootstrap/v040-integrated-source.zip.b64.part-*"
       - "bootstrap/prepare_source.py"
+      - "bootstrap/apply_v040_fixes.py"
       - ".github/workflows/build-windows.yml"
 
 permissions:
